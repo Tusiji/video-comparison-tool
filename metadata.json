@@ -1,0 +1,5 @@
+{
+  "name": "Video Comparison Tool",
+  "description": "An application to upload and compare multiple videos side-by-side with synchronized playback controls.",
+  "requestFramePermissions": []
+}
