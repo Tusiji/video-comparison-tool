@@ -1,10 +1,12 @@
 /* Simple PWA service worker for offline support */
-const CACHE_NAME = 'vct-cache-v1';
+const CACHE_NAME = 'vct-cache-v2';
+const BASE = new URL(self.registration.scope).pathname.replace(/\/?$/,'/');
+const INDEX_URL = BASE + 'index.html';
 const PRECACHE_URLS = [
-  '/',
-  '/index.html',
-  '/app.webmanifest',
-  '/icons/icon.svg'
+  BASE,
+  INDEX_URL,
+  BASE + 'app.webmanifest',
+  BASE + 'icons/icon.svg'
 ];
 
 self.addEventListener('install', (event) => {
@@ -41,9 +43,9 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(request).then((resp) => {
         const copy = resp.clone();
-        caches.open(CACHE_NAME).then((c) => c.put('/index.html', copy)).catch(() => {});
+        caches.open(CACHE_NAME).then((c) => c.put(INDEX_URL, copy)).catch(() => {});
         return resp;
-      }).catch(() => caches.match('/index.html'))
+      }).catch(() => caches.match(INDEX_URL))
     );
     return;
   }
@@ -78,4 +80,3 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
-
