@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video Comparison Tool</title>
+  <meta name="theme-color" content="#0c0a09">
+  <link rel="manifest" href="/video-comparison-tool/app.webmanifest">
+  <link rel="icon" href="/video-comparison-tool/icons/icon.svg" type="image/svg+xml">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style type="text/tailwindcss">
+    /* Theme tokens: Dark (warm gray) only */
+    :root {
+      --accent-color: #e7e5e4; /* stone-200 */
+      --bg-base: #0c0a09;      /* stone-950 */
+      --bg-gradient-radial: radial-gradient(1000px 600px at 80% 10%, rgba(41,37,36,0.35), transparent);
+      --text-color: #e7e5e4;   /* stone-200 */
+      --track-color: #4b5563;  /* gray-600 */
+      /* Semantic surfaces */
+      --panel: rgba(255,255,255,0.05);
+      --panel-strong: rgba(255,255,255,0.08);
+      --overlay: rgba(0,0,0,0.30);
+      --control: rgba(255,255,255,0.10);
+      --control-hover: rgba(255,255,255,0.20);
+      --active: rgba(255,255,255,0.25);
+      --border: rgba(255,255,255,0.10);
+      --border-strong: rgba(255,255,255,0.20);
+      --thumb-color: var(--accent-color);
+      --popover-bg: rgba(0,0,0,0.85);
+      --label-bg: rgba(0,0,0,0.72);
+      --media-bg: rgba(255,255,255,0.08);
+    }
+    @layer utilities {
+      .glass { @apply backdrop-blur-md rounded-3xl shadow-xl; border: 1px solid var(--border); background: var(--panel); box-shadow: 0 10px 30px rgba(0,0,0,0.25); }
+      .chip { @apply rounded-full px-2 py-1 text-xs; border: 1px solid var(--border-strong); background: var(--panel-strong); color: var(--text-color); text-shadow: 0 1px 2px rgba(0,0,0,.45); }
+      .pill { @apply rounded-full; border: 1px solid var(--border); background: var(--control); color: var(--text-color); }
+      .pill:hover { background: var(--control-hover); }
+      .pill-active { background: var(--active); color: var(--text-color); box-shadow: inset 0 0 0 1px var(--border-strong); }
+      .icon-btn { @apply rounded-full; border: 1px solid var(--border-strong); background: var(--panel-strong); color: var(--text-color); box-shadow: 0 4px 16px rgba(0,0,0,.25); }
+      .icon-btn:hover { background: var(--control-hover); }
+      .segment { @apply inline-flex items-center gap-1 rounded-full p-1; border: 1px solid var(--border); background: var(--panel); }
+      .popover { @apply rounded-xl; border: 1px solid var(--border-strong); background: var(--popover-bg); box-shadow: 0 14px 40px rgba(0,0,0,0.55); color: var(--text-color); }
+      .tooltip-surface { border: 1px solid var(--border-strong); background: var(--popover-bg); color: var(--text-color); box-shadow: 0 8px 24px rgba(0,0,0,.45); }
+      .label-chip { @apply rounded-full px-3 py-1 text-xs font-medium; border: 1px solid var(--border-strong); background: var(--label-bg); color: var(--text-color); box-shadow: 0 6px 16px rgba(0,0,0,.45); }
+    }
+  </style>
+
+<!-- Removed unused index.css link to avoid 404 -->
+<script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://esm.sh/react-dom@^19.1.1/",
+    "react/": "https://esm.sh/react@^19.1.1/",
+    "react": "https://esm.sh/react@^19.1.1"
+  }
+}
+</script>
+  <script type="module" crossorigin src="/video-comparison-tool/assets/index-BubZoiBO.js"></script>
+</head>
+<body class="antialiased">
+  <div id="root"></div>
+</body>
+</html>

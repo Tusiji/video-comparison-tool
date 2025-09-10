@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy:docs": "node scripts/deploy-docs.mjs"
   },
   "dependencies": {
     "react-dom": "^19.1.1",
