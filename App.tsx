@@ -455,7 +455,8 @@ const App: React.FC = () => {
 
   return (
     <div 
-      className="relative flex flex-col h-screen bg-gray-900 text-gray-200 font-sans"
+      className="relative flex flex-col h-screen font-sans"
+      style={{ backgroundColor: 'var(--bg-base)', backgroundImage: 'var(--bg-gradient-radial)', color: 'var(--text-color)' }}
       onDragEnter={handleFileDragEnter}
       onDragOver={handleFileDragOver}
       onDragLeave={handleFileDragLeave}
@@ -497,7 +498,7 @@ const App: React.FC = () => {
                     onDelete={() => handleDeleteMedia(mediaItem.id)}
                   />
                   {dropTargetId === mediaItem.id && draggedMediaId !== mediaItem.id && (
-                    <div className="absolute inset-1 pointer-events-none rounded-lg border-2 border-dashed border-cyan-400 bg-cyan-500 bg-opacity-10"></div>
+                    <div className="absolute inset-1 pointer-events-none rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--active)] backdrop-blur-sm"></div>
                   )}
                 </div>
               ))}
@@ -507,8 +508,9 @@ const App: React.FC = () => {
       </main>
 
       {media.some(m => m.type !== 'error') && (
-        <footer className="w-full bg-gray-800 p-4 border-t border-gray-700 shadow-up">
-           <Controls
+        <footer className="w-full p-4">
+          <div className="glass p-4">
+            <Controls
             isPlaying={isPlaying}
             onPlayPause={handlePlayPause}
             isLooping={isLooping}
@@ -522,14 +524,15 @@ const App: React.FC = () => {
             videoCount={media.length}
             playbackRate={playbackRate}
             onPlaybackRateChange={setPlaybackRate}
-          />
+            />
+          </div>
         </footer>
       )}
        {/* Special case footer for only-error states */}
        {media.length > 0 && media.every(m => m.type === 'error') && (
-         <footer className="w-full bg-gray-800 p-4 border-t border-gray-700 shadow-up flex justify-end">
-            <button onClick={handleClear} className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-md transition-colors text-sm">
-              Clear All
+         <footer className="w-full p-4 flex justify-end">
+            <button onClick={handleClear} className="bg-red-500/80 hover:bg-red-500 text-white font-semibold py-2 px-4 rounded-full transition-colors text-sm">
+              Clear
             </button>
          </footer>
        )}
@@ -537,11 +540,11 @@ const App: React.FC = () => {
 
       {isDragging && media.length > 0 && media.length < 40 && (
         <div
-          className="absolute inset-0 bg-gray-900 bg-opacity-80 flex items-center justify-center z-50 border-4 border-dashed border-cyan-400 rounded-lg m-4"
+          className="absolute inset-0 backdrop-blur-sm flex items-center justify-center z-50 border-2 border-dashed border-[var(--border-strong)] rounded-2xl m-4 bg-[var(--overlay)]"
         >
           <div className="text-center">
-            <h2 className="text-3xl font-bold text-white">Drop to Add Files</h2>
-            <p className="text-gray-300 mt-2">You can add up to {40 - media.length} more file(s).</p>
+            <h2 className="text-3xl font-bold" style={{color: 'var(--text-color)'}}>Drop to Add Files</h2>
+            <p className="mt-2" style={{color: 'var(--text-color)'}}>You can add up to {40 - media.length} more file(s).</p>
           </div>
         </div>
       )}

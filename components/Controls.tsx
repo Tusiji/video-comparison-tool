@@ -7,6 +7,7 @@ import { LayoutHorizontalIcon } from './icons/LayoutHorizontalIcon';
 import { LayoutVerticalIcon } from './icons/LayoutVerticalIcon';
 import { LoopIcon } from './icons/LoopIcon';
 import { Tooltip } from './Tooltip';
+import { SegmentedControl } from './SegmentedControl';
 
 
 interface ControlsProps {
@@ -70,17 +71,17 @@ export const Controls: React.FC<ControlsProps> = ({
     onSeek(parseFloat(e.target.value));
   };
   
-  const layoutButtons = [
-    { type: Layout.Grid, Icon: LayoutGridIcon, label: 'Grid' },
-    { type: Layout.SideBySide, Icon: LayoutHorizontalIcon, label: 'Side-by-Side' },
-    { type: Layout.TopBottom, Icon: LayoutVerticalIcon, label: 'Top/Bottom' },
+  const layoutOptions = [
+    { value: Layout.Grid, Icon: LayoutGridIcon, label: 'Grid' },
+    { value: Layout.SideBySide, Icon: LayoutHorizontalIcon, label: 'Side-by-Side', disabled: videoCount < 2 },
+    { value: Layout.TopBottom, Icon: LayoutVerticalIcon, label: 'Top/Bottom', disabled: videoCount < 2 },
   ];
 
   return (
     <div className="flex flex-col space-y-3">
       {/* Progress Bar */}
       <div className="flex items-center gap-4">
-        <span className="text-xs font-mono w-12 text-right">{formatTime(progress)}</span>
+        <span className="text-xs font-mono w-12 text-right" style={{color:'var(--text-color)'}}>{formatTime(progress)}</span>
         <input
           type="range"
           min="0"
@@ -88,10 +89,10 @@ export const Controls: React.FC<ControlsProps> = ({
           step="0.1"
           value={progress}
           onChange={handleSeekChange}
-          className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer range-thumb"
-          style={{ '--thumb-color': '#22d3ee' } as React.CSSProperties}
+          className="w-full h-2 bg-[var(--track-color)] rounded-lg appearance-none cursor-pointer range-thumb"
+          style={{ '--thumb-color': 'var(--accent-color)', accentColor: 'var(--accent-color)' } as React.CSSProperties}
         />
-        <span className="text-xs font-mono w-12 text-left">{formatTime(duration)}</span>
+        <span className="text-xs font-mono w-12 text-left" style={{color:'var(--text-color)'}}>{formatTime(duration)}</span>
       </div>
       <style>{`
         .range-thumb::-webkit-slider-thumb { background-color: var(--thumb-color); }
@@ -99,37 +100,26 @@ export const Controls: React.FC<ControlsProps> = ({
       `}</style>
       
       {/* Main Controls */}
-      <div className="flex justify-between items-center">
+      <div className="grid items-center gap-4 w-full" style={{ gridTemplateColumns: '1fr auto 1fr' }}>
         {/* Left Side: Layout Controls */}
-        <div className="flex items-center space-x-2">
-            {layoutButtons.map(({ type, Icon, label }) => (
-                <Tooltip key={type} text={label}>
-                    <button
-                        onClick={() => onLayoutChange(type)}
-                        disabled={videoCount < 2 && (type === Layout.SideBySide || type === Layout.TopBottom)}
-                        aria-label={label}
-                        className={`p-2 rounded-md transition-colors ${
-                            currentLayout === type
-                                ? 'bg-cyan-500 text-white'
-                                : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-                        } disabled:opacity-50 disabled:cursor-not-allowed`}
-                    >
-                        <Icon className="w-5 h-5" />
-                    </button>
-                </Tooltip>
-            ))}
-        </div>
+        <SegmentedControl
+          value={currentLayout}
+          onChange={onLayoutChange}
+          options={layoutOptions}
+          showLabels={false}
+          className="justify-self-start max-w-max"
+        />
         
         {/* Center: Play/Pause */}
-        <button onClick={onPlayPause} className="bg-cyan-500 hover:bg-cyan-600 text-white font-bold p-3 rounded-full transition-transform transform hover:scale-110">
+        <button onClick={onPlayPause} className="icon-btn p-3 transition-transform transform hover:scale-110 shadow-xl justify-self-center">
           {isPlaying ? <PauseIcon className="w-6 h-6"/> : <PlayIcon className="w-6 h-6"/>}
         </button>
         
         {/* Right Side: Loop & Clear */}
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 justify-self-end">
           <div className="relative" ref={speedMenuRef}>
             {isSpeedMenuOpen && (
-              <div className="absolute bottom-full mb-2 w-28 bg-gray-900 border border-gray-700 rounded-md shadow-lg z-10 overflow-hidden">
+              <div className="absolute bottom-full mb-2 w-28 popover z-10 overflow-hidden">
                 <ul>
                   {playbackRates.map(rate => (
                     <li key={rate}>
@@ -140,8 +130,8 @@ export const Controls: React.FC<ControlsProps> = ({
                         }}
                         className={`w-full text-left px-4 py-2 text-sm transition-colors ${
                           playbackRate === rate
-                            ? 'bg-cyan-500 text-white'
-                            : 'text-gray-200 hover:bg-gray-700'
+                            ? 'bg-[var(--active)] text-[var(--text-color)]'
+                            : 'text-[var(--text-color)] hover:bg-[var(--control-hover)]'
                         }`}
                       >
                         {rate === 1 ? 'Normal' : `${rate}x`}
@@ -155,7 +145,7 @@ export const Controls: React.FC<ControlsProps> = ({
               <button
                 onClick={() => setIsSpeedMenuOpen(prev => !prev)}
                 aria-label="Playback speed"
-                className="px-3 py-2 min-w-[60px] text-center rounded-md transition-colors bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm"
+                className="px-3 py-2 min-w-[60px] text-center transition-colors pill text-sm"
               >
                 {`${playbackRate}x`}
               </button>
@@ -165,17 +155,13 @@ export const Controls: React.FC<ControlsProps> = ({
             <button
               onClick={onLoopToggle}
               aria-label={isLooping ? "Disable loop" : "Enable loop"}
-              className={`p-2 rounded-md transition-colors ${
-                  isLooping
-                      ? 'bg-cyan-500 text-white'
-                      : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-              }`}
+              className={`pill p-2 transition-colors ${isLooping ? 'pill-active' : ''}`}
             >
               <LoopIcon className="w-5 h-5" />
             </button>
           </Tooltip>
-          <button onClick={onClear} className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-md transition-colors text-sm">
-            Clear All
+          <button onClick={onClear} className="bg-red-500/80 hover:bg-red-500 text-white font-semibold py-2 px-4 rounded-full transition-colors text-sm">
+            Clear
           </button>
         </div>
       </div>

@@ -121,13 +121,14 @@ export const VideoPlayer = forwardRef<HTMLVideoElement, MediaPlayerProps>(
     }, [videoNode]);
 
     return (
-      <div className="relative w-full h-full bg-black rounded-lg overflow-hidden shadow-lg group">
+      <div className="relative w-full h-full rounded-2xl overflow-hidden shadow-xl group">
         {media.type === 'video' && (
           <video
             ref={setRefs}
             src={media.src}
             muted={isMuted}
             className="w-full h-full object-contain"
+            style={{ backgroundColor: 'var(--media-bg)' }}
           />
         )}
         {media.type === 'image' && (
@@ -135,24 +136,25 @@ export const VideoPlayer = forwardRef<HTMLVideoElement, MediaPlayerProps>(
             src={media.src}
             alt={media.name}
             className="w-full h-full object-contain"
+            style={{ backgroundColor: 'var(--media-bg)' }}
           />
         )}
         {media.type === 'error' && (
-           <div className="w-full h-full flex flex-col items-center justify-center bg-gray-800 p-4 text-center">
+           <div className="w-full h-full flex flex-col items-center justify-center glass p-4 text-center">
             <ErrorIcon className="w-10 h-10 mb-3 text-red-500" />
-            <p className="text-xs text-gray-300 mt-1 break-all font-semibold" title={media.name}>{media.name}</p>
-            <p className="text-xs text-gray-400 mt-2">{media.error}</p>
+            <p className="text-xs mt-1 break-all font-semibold" title={media.name} style={{color: 'var(--text-color)'}}>{media.name}</p>
+            <p className="text-xs mt-2" style={{color: 'var(--text-color)'}}>{media.error}</p>
         </div>
         )}
 
-        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity duration-300 flex items-center justify-center pointer-events-none">
+        <div className="absolute inset-0 transition-opacity duration-300 flex items-center justify-center pointer-events-none" style={{ backgroundColor: 'transparent' }}>
           
           {/* Top-right: Delete Button (always available) */}
-          <div className="absolute top-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-auto">
+          <div className="absolute top-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-auto z-20">
              <button 
                 onClick={handleDelete} 
                 title="Remove file" 
-                className="text-white hover:text-red-500 transition-colors bg-black bg-opacity-60 hover:bg-opacity-90 rounded-full p-1.5"
+                className="transition-colors icon-btn p-1.5 hover:text-red-500"
                 aria-label="Remove file"
               >
                 <CloseIcon className="w-4 h-4" />
@@ -163,8 +165,8 @@ export const VideoPlayer = forwardRef<HTMLVideoElement, MediaPlayerProps>(
           {media.type !== 'error' && (
             <>
               {/* Top-left: Filename */}
-              <div className="absolute top-0 left-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-auto">
-                <span className="bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded select-none">
+              <div className="absolute top-0 left-0 right-16 p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-10">
+                <span className="label-chip select-none max-w-full truncate inline-block" title={media.name}>
                   {media.name}
                 </span>
               </div>
@@ -176,7 +178,7 @@ export const VideoPlayer = forwardRef<HTMLVideoElement, MediaPlayerProps>(
                     onClick={handleTogglePlay} 
                     title={isPaused ? "Play" : "Pause"} 
                     aria-label={isPaused ? "Play video" : "Pause video"}
-                    className="text-white bg-black bg-opacity-60 rounded-full p-4 transition-transform hover:scale-110"
+                    className="icon-btn p-4 transition-transform hover:scale-110"
                   >
                     {isPaused ? <PlayIcon className="w-10 h-10" /> : <PauseIcon className="w-10 h-10" />}
                   </button>
@@ -186,10 +188,10 @@ export const VideoPlayer = forwardRef<HTMLVideoElement, MediaPlayerProps>(
               {/* Bottom-left: Screenshot Button (only for videos) */}
               {media.type === 'video' && (
                 <div className="absolute bottom-0 left-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-auto">
-                   <button 
+                    <button 
                       onClick={handleScreenshot} 
                       title="Get screenshot (first frame)" 
-                      className="text-white hover:text-cyan-400 transition-colors bg-black bg-opacity-60 hover:bg-opacity-90 rounded-full p-1.5"
+                      className="transition-colors icon-btn p-1.5"
                       aria-label="Get screenshot of first frame"
                     >
                       <CameraIcon className="w-4 h-4" />
