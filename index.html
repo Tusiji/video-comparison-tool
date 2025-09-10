@@ -58,13 +58,19 @@
 <body class="antialiased">
   <div id="root"></div>
   <script type="module" src="./index.tsx"></script>
-  <script>
+  <script type="module">
     // Register the service worker for offline + installability
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/service-worker.js').catch(err => {
-          console.warn('SW registration failed:', err);
-        });
+        try {
+          const base = import.meta.env.BASE_URL || '/';
+          const swUrl = (base.endsWith('/') ? base : base + '/') + 'service-worker.js';
+          navigator.serviceWorker.register(swUrl, { scope: base }).catch(err => {
+            console.warn('SW registration failed:', err);
+          });
+        } catch (err) {
+          console.warn('SW registration error:', err);
+        }
       });
     }
   </script>
