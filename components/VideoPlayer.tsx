@@ -16,6 +16,8 @@ export const VideoPlayer = forwardRef<HTMLVideoElement, MediaPlayerProps>(
   ({ media, isMuted = true, onDelete }, forwardedRef) => {
     const [videoNode, setVideoNode] = useState<HTMLVideoElement | null>(null);
     const [isPaused, setIsPaused] = useState(true);
+    const [resolution, setResolution] = useState<{ w: number; h: number } | null>(null);
+    const [fps, setFps] = useState<number | null>(null);
 
     const setRefs = useCallback((node: HTMLVideoElement | null) => {
       if (media.type === 'video') {
@@ -120,6 +122,89 @@ export const VideoPlayer = forwardRef<HTMLVideoElement, MediaPlayerProps>(
       };
     }, [videoNode]);
 
+    useEffect(() => {
+      if (!videoNode) return;
+      const onLoadedMetadata = () => {
+        if (videoNode.videoWidth && videoNode.videoHeight) {
+          setResolution({ w: videoNode.videoWidth, h: videoNode.videoHeight });
+        }
+      };
+      videoNode.addEventListener('loadedmetadata', onLoadedMetadata);
+      if (videoNode.readyState >= 1) {
+        onLoadedMetadata();
+      }
+      return () => {
+        videoNode.removeEventListener('loadedmetadata', onLoadedMetadata);
+      };
+    }, [videoNode]);
+
+    useEffect(() => {
+      if (!videoNode) return;
+      let cancelled = false;
+      const rvfc = (videoNode as any).requestVideoFrameCallback?.bind(videoNode);
+      const measure = async () => {
+        if (!rvfc) {
+          if (!cancelled) setFps(30);
+          return;
+        }
+        let count = 0;
+        let first: number | null = null;
+        let last: number | null = null;
+        let done = false;
+        return new Promise<void>(resolve => {
+          const finish = () => {
+            if (done) return;
+            done = true;
+            if (!cancelled) {
+              if (first !== null && last !== null && last > first && count > 1) {
+                const val = (count - 1) / (last - first);
+                setFps(Math.min(120, Math.max(1, val)));
+              } else {
+                setFps(30);
+              }
+            }
+            resolve();
+          };
+          const timer = setTimeout(finish, 800);
+          const cb = (_now: any, metadata: any) => {
+            const t = typeof metadata?.mediaTime === 'number' ? metadata.mediaTime : null;
+            if (t !== null) {
+              if (first === null) first = t;
+              last = t;
+            }
+            count++;
+            if (count >= 7) {
+              clearTimeout(timer);
+              finish();
+            } else {
+              rvfc(cb);
+            }
+          };
+          rvfc(cb);
+        });
+      };
+      let playing = false;
+      const onPlay = () => {
+        playing = true;
+        if (fps === null) {
+          measure();
+        }
+      };
+      const onPause = () => {
+        playing = false;
+      };
+      videoNode.addEventListener('play', onPlay);
+      videoNode.addEventListener('pause', onPause);
+      if (!videoNode.paused && fps === null) {
+        onPlay();
+      }
+      return () => {
+        cancelled = true;
+        videoNode.removeEventListener('play', onPlay);
+        videoNode.removeEventListener('pause', onPause);
+      };
+    }, [videoNode, fps]);
+
     return (
       <div className="relative w-full h-full rounded-2xl overflow-hidden shadow-xl group">
         {media.type === 'video' && (
@@ -196,6 +281,30 @@ export const VideoPlayer = forwardRef<HTMLVideoElement, MediaPlayerProps>(
                     >
                       <CameraIcon className="w-4 h-4" />
                    </button>
+                </div>
+              )}
+
+              {media.type === 'video' && (
+                <div className="absolute bottom-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-10">
+                  {(() => {
+                    const formatFps = (value: number) => {
+                      const candidates = [
+                        { v: 24000 / 1001, label: '23.976' },
+                        { v: 30000 / 1001, label: '29.97' },
+                        { v: 60000 / 1001, label: '59.94' },
+                        { v: 48000 / 1001, label: '47.952' },
+                        { v: 120000 / 1001, label: '119.88' },
+                      ];
+                      for (const c of candidates) {
+                        if (Math.abs(value - c.v) < 0.05) return c.label;
+                      }
+                      const s = value.toFixed(3).replace(/\.?0+$/, '');
+                      return s;
+                    };
+                    const fpsText = fps !== null ? `${formatFps(fps)} fps` : '— fps';
+                    const resText = resolution ? `${resolution.w}x${resolution.h}` : '—';
+                    return <span className="label-chip select-none inline-block">{`${resText} · ${fpsText}`}</span>;
+                  })()}
                 </div>
               )}
             </>

@@ -3,12 +3,14 @@ import { UploadArea } from './components/UploadArea';
 import { VideoPlayer } from './components/VideoPlayer';
 import { Controls } from './components/Controls';
 import { Layout, MediaFile } from './types';
+import { VideoExporter } from './utils/VideoExporter';
 
 const App: React.FC = () => {
   const [media, setMedia] = useState<MediaFile[]>([]);
   const [layout, setLayout] = useState<Layout>(Layout.Grid);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [isExporting, setIsExporting] = useState<boolean>(false);
   const [isLooping, setIsLooping] = useState<boolean>(false);
   const [progress, setProgress] = useState<number>(0);
   const [shortestDuration, setShortestDuration] = useState<number>(0);
@@ -17,9 +19,16 @@ const App: React.FC = () => {
   const [draggedMediaId, setDraggedMediaId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const [shortestVideoId, setShortestVideoId] = useState<string | null>(null);
+  const [exportProgress, setExportProgress] = useState<{processed: number, total: number} | null>(null);
 
   const videoRefs = useRef<Map<string, HTMLVideoElement | null>>(new Map());
   const dragCounter = useRef(0);
+
+  const formatExportTime = (time: number) => {
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
   
   const processMediaFile = (file: File): Promise<MediaFile> => {
     return new Promise((resolve) => {
@@ -276,6 +285,7 @@ const App: React.FC = () => {
 
   // Effect for handling the 'ended' event to robustly manage playback completion.
   useEffect(() => {
+    if (isExporting) return;
     if (!shortestVideoId) return;
     
     const shortestVideo = videoRefs.current.get(shortestVideoId);
@@ -304,7 +314,8 @@ const App: React.FC = () => {
     };
 
     shortestVideo.addEventListener('ended', handleVideoEnded);
-    return () => {
+
+  return () => {
       if (shortestVideo) {
         shortestVideo.removeEventListener('ended', handleVideoEnded);
       }
@@ -318,9 +329,11 @@ const App: React.FC = () => {
     if (!shortestVideo) return;
     
     const handleTimeUpdate = () => {
-      // Cap progress at the shortest duration to keep the UI consistent
-      // for videos of different lengths.
-      const newProgress = Math.min(shortestVideo.currentTime, shortestDuration);
+      const epsilon = 0.05;
+      const t = shortestVideo.currentTime;
+      const newProgress = t >= Math.max(0, shortestDuration - epsilon)
+        ? shortestDuration
+        : Math.min(t, shortestDuration);
       setProgress(newProgress);
     };
     
@@ -403,7 +416,7 @@ const App: React.FC = () => {
     dragCounter.current = 0;
 
     if (media.length > 0 && e.dataTransfer.files) {
-      const mediaFiles = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('video/') || file.type.startsWith('image/'));
+      const mediaFiles = Array.from(e.dataTransfer.files).filter((file: any) => file.type.startsWith('video/') || file.type.startsWith('image/')) as File[];
       if (mediaFiles.length > 0) {
         handleAppendVideos(mediaFiles);
       }
@@ -451,6 +464,56 @@ const App: React.FC = () => {
   const handleReorderDragEnd = () => {
       setDraggedMediaId(null);
       setDropTargetId(null);
+  };
+
+  const handleExport = async () => {
+    if (isExporting || shortestDuration <= 0) return;
+
+    setIsExporting(true);
+    setExportProgress({ processed: 0, total: shortestDuration });
+    setIsPlaying(false);
+
+    const exporter = new VideoExporter(media, videoRefs.current);
+    
+    await exporter.export({
+        layout,
+        duration: shortestDuration,
+        onProgress: (progress) => {
+            // progress is 0 to 1
+            setExportProgress({
+                processed: progress * shortestDuration,
+                total: shortestDuration
+            });
+        },
+        onComplete: (blob, fps) => {
+            setIsExporting(false);
+            setExportProgress(null);
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const extension = blob.type.includes('mp4') ? 'mp4' : 'webm';
+            const now = new Date();
+            const y = now.getFullYear().toString();
+            const m = (now.getMonth() + 1).toString().padStart(2, '0');
+            const d = now.getDate().toString().padStart(2, '0');
+            const hh = now.getHours().toString().padStart(2, '0');
+            const mm = now.getMinutes().toString().padStart(2, '0');
+            const ss = now.getSeconds().toString().padStart(2, '0');
+            const ts = `${y}${m}${d}-${hh}${mm}${ss}`;
+            const fpsStr = typeof fps === 'number' && isFinite(fps) ? `-${Math.round(fps)}fps` : '';
+            a.download = `comparison-export-${ts}${fpsStr}.${extension}`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        },
+        onError: (err) => {
+            console.error("Export failed", err);
+            alert("Export failed: " + err.message);
+            setIsExporting(false);
+            setExportProgress(null);
+        }
+    });
   };
 
   return (
@@ -521,8 +584,10 @@ const App: React.FC = () => {
             currentLayout={layout}
             onLayoutChange={setLayout}
             onClear={handleClear}
-            videoCount={media.length}
+            videoCount={media.filter(m => m.type === 'video').length}
             playbackRate={playbackRate}
+            onExport={handleExport}
+            isExporting={isExporting}
             onPlaybackRateChange={setPlaybackRate}
             />
           </div>
@@ -545,6 +610,23 @@ const App: React.FC = () => {
           <div className="text-center">
             <h2 className="text-3xl font-bold" style={{color: 'var(--text-color)'}}>Drop to Add Files</h2>
             <p className="mt-2" style={{color: 'var(--text-color)'}}>You can add up to {40 - media.length} more file(s).</p>
+          </div>
+        </div>
+      )}
+
+      {isExporting && exportProgress && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center backdrop-blur-md bg-black/50">
+          <div className="bg-[var(--bg-base)] p-8 rounded-2xl shadow-2xl flex flex-col items-center max-w-sm w-full border border-[var(--border-strong)]">
+             <div className="w-16 h-16 mb-4 relative flex items-center justify-center">
+                <svg className="animate-spin w-full h-full text-[var(--accent-color)]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+             </div>
+             <h3 className="text-xl font-bold mb-2" style={{color: 'var(--text-color)'}}>Exporting Video...</h3>
+             <p className="text-sm text-center opacity-70 font-mono" style={{color: 'var(--text-color)'}}>
+                {formatExportTime(exportProgress.processed)} / {formatExportTime(exportProgress.total)}
+             </p>
           </div>
         </div>
       )}

@@ -6,6 +6,8 @@ import { LayoutGridIcon } from './icons/LayoutGridIcon';
 import { LayoutHorizontalIcon } from './icons/LayoutHorizontalIcon';
 import { LayoutVerticalIcon } from './icons/LayoutVerticalIcon';
 import { LoopIcon } from './icons/LoopIcon';
+import { ExportIcon } from './icons/ExportIcon';
+import { ClearIcon } from './icons/ClearIcon';
 import { Tooltip } from './Tooltip';
 import { SegmentedControl } from './SegmentedControl';
 
@@ -24,6 +26,8 @@ interface ControlsProps {
   videoCount: number;
   playbackRate: number;
   onPlaybackRateChange: (rate: number) => void;
+  onExport: () => void;
+  isExporting: boolean;
 }
 
 export const Controls: React.FC<ControlsProps> = ({
@@ -40,6 +44,8 @@ export const Controls: React.FC<ControlsProps> = ({
   videoCount,
   playbackRate,
   onPlaybackRateChange,
+  onExport,
+  isExporting,
 }) => {
   const [isSpeedMenuOpen, setIsSpeedMenuOpen] = useState(false);
   const speedMenuRef = useRef<HTMLDivElement>(null);
@@ -62,8 +68,9 @@ export const Controls: React.FC<ControlsProps> = ({
     if (isNaN(time) || time === Infinity) {
       return '00:00';
     }
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60);
+    const rounded = Math.round(time);
+    const minutes = Math.floor(rounded / 60);
+    const seconds = rounded % 60;
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
@@ -89,7 +96,8 @@ export const Controls: React.FC<ControlsProps> = ({
           step="0.1"
           value={progress}
           onChange={handleSeekChange}
-          className="w-full h-2 bg-[var(--track-color)] rounded-lg appearance-none cursor-pointer range-thumb"
+          disabled={isExporting}
+          className={`w-full h-2 bg-[var(--track-color)] rounded-lg appearance-none cursor-pointer range-thumb ${isExporting ? 'opacity-50 cursor-not-allowed' : ''}`}
           style={{ '--thumb-color': 'var(--accent-color)', accentColor: 'var(--accent-color)' } as React.CSSProperties}
         />
         <span className="text-xs font-mono w-12 text-left" style={{color:'var(--text-color)'}}>{formatTime(duration)}</span>
@@ -105,18 +113,22 @@ export const Controls: React.FC<ControlsProps> = ({
         <SegmentedControl
           value={currentLayout}
           onChange={onLayoutChange}
-          options={layoutOptions}
+          options={layoutOptions.map(opt => ({ ...opt, disabled: opt.disabled || isExporting }))}
           showLabels={false}
-          className="justify-self-start max-w-max"
+          className={`justify-self-start max-w-max ${isExporting ? 'opacity-50 pointer-events-none' : ''}`}
         />
         
         {/* Center: Play/Pause */}
-        <button onClick={onPlayPause} className="icon-btn p-3 transition-transform transform hover:scale-110 shadow-xl justify-self-center">
+        <button 
+            onClick={onPlayPause} 
+            disabled={isExporting}
+            className={`icon-btn p-3 transition-transform transform hover:scale-110 shadow-xl justify-self-center ${isExporting ? 'opacity-50 cursor-not-allowed hover:scale-100' : ''}`}
+        >
           {isPlaying ? <PauseIcon className="w-6 h-6"/> : <PlayIcon className="w-6 h-6"/>}
         </button>
         
         {/* Right Side: Loop & Clear */}
-        <div className="flex items-center space-x-2 justify-self-end">
+        <div className="flex items-center space-x-2 justify-self-end whitespace-nowrap">
           <div className="relative" ref={speedMenuRef}>
             {isSpeedMenuOpen && (
               <div className="absolute bottom-full mb-2 w-28 popover z-10 overflow-hidden">
@@ -128,6 +140,7 @@ export const Controls: React.FC<ControlsProps> = ({
                           onPlaybackRateChange(rate);
                           setIsSpeedMenuOpen(false);
                         }}
+                        disabled={isExporting}
                         className={`w-full text-left px-4 py-2 text-sm transition-colors ${
                           playbackRate === rate
                             ? 'bg-[var(--active)] text-[var(--text-color)]'
@@ -144,8 +157,9 @@ export const Controls: React.FC<ControlsProps> = ({
             <Tooltip text="Playback speed">
               <button
                 onClick={() => setIsSpeedMenuOpen(prev => !prev)}
+                disabled={isExporting}
                 aria-label="Playback speed"
-                className="px-3 py-2 min-w-[60px] text-center transition-colors pill text-sm"
+                className={`px-3 py-2 min-w-[60px] text-center transition-colors pill text-sm ${isExporting ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 {`${playbackRate}x`}
               </button>
@@ -154,15 +168,33 @@ export const Controls: React.FC<ControlsProps> = ({
           <Tooltip text={isLooping ? "Disable loop" : "Enable loop"}>
             <button
               onClick={onLoopToggle}
+              disabled={isExporting}
               aria-label={isLooping ? "Disable loop" : "Enable loop"}
-              className={`pill p-2 transition-colors ${isLooping ? 'pill-active' : ''}`}
+              className={`pill p-2 transition-colors ${isLooping ? 'pill-active' : ''} ${isExporting ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <LoopIcon className="w-5 h-5" />
             </button>
           </Tooltip>
-          <button onClick={onClear} className="bg-red-500/80 hover:bg-red-500 text-white font-semibold py-2 px-4 rounded-full transition-colors text-sm">
-            Clear
-          </button>
+          <Tooltip text={videoCount < 2 ? "Add more videos to export" : "Export video"}>
+            <button
+              onClick={onExport}
+              disabled={isExporting || videoCount < 2}
+              aria-label="Export video"
+              className={`pill p-2 transition-colors ${isExporting || videoCount < 2 ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <ExportIcon className={`w-5 h-5 ${isExporting ? 'animate-pulse' : ''}`} />
+            </button>
+          </Tooltip>
+          <Tooltip text="Clear all">
+            <button 
+              onClick={onClear} 
+              disabled={isExporting}
+              aria-label="Clear all"
+              className={`bg-red-500/80 hover:bg-red-500 text-white rounded-full p-2 transition-colors ${isExporting ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <ClearIcon className="w-5 h-5" />
+            </button>
+          </Tooltip>
         </div>
       </div>
     </div>
